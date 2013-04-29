@@ -3,10 +3,17 @@
 import argparse
 import logging
 import os
+import re
 import shlex
 import subprocess
 import sys
 import sysconfig
+
+re_parse_args = re.compile(r'^(?P<lopt>\[)?('
+                           r'(?P<key>\-\-[a-z_-]+)=(?P<value>[^= \]]+)|'
+                           r'(?P<flag>\-\-[a-z_-]+)|'
+                           r'(?P<argument>[^= \]]+))'
+                           r'(?P<ropt>\])?$')
 
 LOG_FORMAT = '%(name)s - %(levelname)s: %(message)s'
 
@@ -62,10 +69,20 @@ class BashModule(object):
         metadata = self.get_metadata()
         parser = subparser.add_parser(self.name, help=metadata.get('help'))
         for arg in shlex.split(metadata.get('usage', '')):
-            # we just supports required and optional arguments
-            required = arg[0] != '[' and arg[-1] != ']'
-            parser.add_argument(arg.lstrip('[').rstrip(']'),
-                                nargs=required and 1 or '?')
+            rv = re_parse_args.match(arg)
+            if rv is None:
+                raise RuntimeError('Inconsistent argument: %s' % arg)
+            args = rv.groupdict()
+            optional = args['lopt'] == '[' and args['ropt'] == ']'
+            if args['argument'] is not None:
+                parser.add_argument(args['argument'],
+                                    nargs=optional and '?' or 1)
+            elif args['flag'] is not None:
+                parser.add_argument(args['flag'], required=not optional,
+                                    action='store_const', const='1')
+            elif args['key'] is not None and args['value'] is not None:
+                parser.add_argument(args['key'], metavar=args['value'],
+                                    required=not optional)
         parser.set_defaults(_module=self)
         return parser
 
