@@ -101,11 +101,12 @@ class Runner(object):
         self.parser.add_argument('--traceback', dest='_traceback',
                                  action='store_true',
                                  help='print Python traceback in errors.')
-        levels = [j for i, j in logging._levelNames.iteritems() \
+        levels = [j for i, j in logging._levelNames.iteritems()
                   if isinstance(j, basestring)]
         self.parser.add_argument('--log-level', dest='log_level',
                                  default='WARNING', choices=levels,
                                  help='configure logging level.')
+
     @property
     def search_paths(self):
         # The code below can't use any log level lower than WARNING
@@ -130,7 +131,7 @@ class Runner(object):
             for module in os.listdir(path):
                 module_file = os.path.join(path, module)
                 if os.path.isfile(module_file) and \
-                   os.access(module_file, os.X_OK):
+                        os.access(module_file, os.X_OK):
                     modules[module] = BashModule(module_file)
         return modules
 
@@ -174,4 +175,3 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
-
