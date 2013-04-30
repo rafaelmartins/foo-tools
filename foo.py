@@ -10,8 +10,7 @@ import sys
 import sysconfig
 
 re_parse_args = re.compile(r'^(?P<lopt>\[)?('
-                           r'(?P<key>\-\-[a-z_-]+)=(?P<value>[^= \]]+)|'
-                           r'(?P<flag>\-\-[a-z_-]+)|'
+                           r'(?P<key>\-\-[a-z_-]+)(=(?P<value>[^= \]]+))?|'
                            r'(?P<argument>[^= \]]+))'
                            r'(?P<ropt>\])?$')
 
@@ -77,12 +76,13 @@ class BashModule(object):
             if args['argument'] is not None:
                 parser.add_argument(args['argument'],
                                     nargs=optional and '?' or 1)
-            elif args['flag'] is not None:
-                parser.add_argument(args['flag'], required=not optional,
-                                    action='store_const', const='1')
-            elif args['key'] is not None and args['value'] is not None:
-                parser.add_argument(args['key'], metavar=args['value'],
-                                    required=not optional)
+            elif args['key'] is not None:
+                if args['value'] is not None:
+                    parser.add_argument(args['key'], metavar=args['value'],
+                                        required=not optional)
+                else:
+                    parser.add_argument(args['key'], required=not optional,
+                                        action='store_const', const='1')
         parser.set_defaults(_module=self)
         return parser
 
