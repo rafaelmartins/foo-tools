@@ -154,6 +154,8 @@ class Runner(object):
                 if os.path.isfile(module_file) and \
                         os.access(module_file, os.X_OK):
                     modules[module] = BashModule(module_file)
+        if len(modules) == 0:
+            raise RuntimeError('No module found!')
         return modules
 
     def run(self):
