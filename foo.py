@@ -128,12 +128,16 @@ class Runner(object):
     def search_paths(self):
         # The code below can't use any log level lower than WARNING
         paths = []
+        _user = os.path.join(os.path.expanduser('~'), '.local', 'libexec',
+                             'foo-tools')
+        if os.path.isdir(_user):
+            paths.append(_user)
         cwd = os.path.dirname(os.path.abspath(__file__))
         _local = os.path.join(cwd, 'modules')
         if os.path.isdir(_local):
             paths.append(_local)
         _global = os.path.join(sysconfig.get_config_var('base'), 'libexec',
-                               'foo-tools', 'modules')
+                               'foo-tools')
         if os.path.isdir(_global):
             paths.append(_global)
         if len(paths) == 0:
