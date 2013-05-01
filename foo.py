@@ -9,10 +9,11 @@ import subprocess
 import sys
 import sysconfig
 
-re_parse_args = re.compile(r'^(?P<lopt>\[)?('
-                           r'(?P<key>\-\-[a-z_-]+)(=(?P<value>[^= \]]+))?|'
-                           r'(?P<argument>[^= \]]+))'
-                           r'(?P<ropt>\])?$')
+re_parse_args = re.compile(
+    r'^(?P<lopt>\[)?('
+    r'(?P<key>\-\-(?P<key_name>[a-z_-]+))(=(?P<value>[^= \]]+))?|'
+    r'(?P<argument>[^= \]]+))'
+    r'(?P<ropt>\])?$')
 
 LOG_FORMAT = '%(name)s - %(levelname)s: %(message)s'
 
@@ -35,7 +36,7 @@ die() {
     log_critical $@
     exit 1
 }
-source "%(module)s" &> /dev/null
+source "%(module)s" > /dev/null
 main'''
 
 log = logging.getLogger('foo')
@@ -74,20 +75,23 @@ class BashModule(object):
             args = rv.groupdict()
             optional = args['lopt'] == '[' and args['ropt'] == ']'
             if args['argument'] is not None:
-                parser.add_argument(args['argument'],
+                help = metadata.get('help_%s' % args['argument'].lower())
+                parser.add_argument(args['argument'], help=help,
                                     nargs=optional and '?' or 1)
             elif args['key'] is not None:
+                help = metadata.get('help_%s' % args['key_name'].lower())
                 if args['value'] is not None:
                     parser.add_argument(args['key'], metavar=args['value'],
-                                        required=not optional)
+                                        required=not optional, help=help)
                 else:
                     parser.add_argument(args['key'], required=not optional,
-                                        action='store_const', const='1')
+                                        action='store_const', const='1',
+                                        help=help)
         parser.set_defaults(_module=self)
         return parser
 
     def run(self, args):
-        env = {}
+        env = {'PATH': os.environ['PATH']}
         for key, value in args.iteritems():
             if isinstance(value, list):
                 value = value[0]
