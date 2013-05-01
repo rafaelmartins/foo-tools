@@ -1,0 +1,130 @@
+#!/bin/bash
+
+FOO_HELP="gets a hostname or URL and analyze its DNS"
+FOO_USAGE="url_or_hostname"
+FOO_HELP_URL_OR_HOSTNAME="URL or hostname"
+
+get_hostname() {
+    local hostname="${FOO_ARG_URL_OR_HOSTNAME}"
+    hostname="${hostname##https://}"
+    hostname="${hostname##http://}"
+    hostname="${hostname%%/*}"
+    echo "${hostname}"
+}
+
+get_cname() {
+    local cname="$(host -t CNAME ${1} | grep 'alias for')"
+    cname="${cname##* }"
+    cname="${cname%.}"
+    echo "${cname}"
+}
+
+get_a() {
+    local a
+    host -t A "${1}" | grep "address" | \
+        while read line; do
+            a="${line}"
+            a="${a##* }"
+            echo "${a}"
+        done | sort -u
+}
+
+get_ns() {
+    local ns
+    host -t NS "${1}" | grep "name server" | \
+        while read line; do
+            ns="${line}"
+            ns="${ns##* }"
+            ns="${ns%.}"
+            echo "${ns}"
+        done | sort -u
+}
+
+get_ptr() {
+    local ptr="$(host -t PTR "${1}" | grep "name pointer")"
+    ptr="${ptr##* }"
+    ptr="${ptr%.}"
+    echo "${ptr}"
+}
+
+get_mx() {
+    local mx
+    host -t MX "${1}" | grep "handled by" | \
+        while read line; do
+            mx="${line}"
+            mx="${mx##*handled by }"
+            mx="${mx%.}"
+            mx="${mx/ /#}"
+            echo "${mx}"
+        done | sort -g
+}
+
+echo_ip_with_ptr() {
+    local ptr="$(get_ptr "${1}")"
+    echo -n "${1}"
+    [[ -n "${ptr}" ]] && echo -n " -> ${ptr}"
+    echo
+}
+
+main() {
+    which host &> /dev/null || die "\`host' command not found. Please install bind-tools."
+    local hostname="$(get_hostname)"
+    local cname="$(get_cname "${hostname}")"
+    local real_hostname="${hostname}"
+    echo "Hostname: ${hostname}"
+    if [[ -n "${cname}" ]]; then
+        echo "CNAME: ${cname}"
+        log_info "CNAME found: ${cname}. using it as hostname for ${hostname}."
+        real_hostname="${cname}"
+    fi
+
+    local ptr
+    local a_records="$(get_a "$real_hostname")"
+    if [[ -n "${a_records}" ]]; then
+        echo -e "\nA records:"
+        for a in ${a_records}; do
+            echo -n "    "
+            echo_ip_with_ptr "${a}"
+        done
+    fi
+
+    local ns ns_cname ns_ptr
+    local ns_records="$(get_ns "$real_hostname")"
+    if [[ -n "${ns_records}" ]]; then
+        echo -e "\nNS records:"
+        for ns in ${ns_records}; do
+            echo -n "    ${ns}"
+            ns_cname="$(get_cname "${ns}")"
+            if [[ -n "${ns_cname}" ]]; then
+                echo -n "(CNAME: ${ns_cname})"
+                ns="${ns_cname}"
+            fi
+            echo
+            for a in $(get_a "$ns"); do
+                echo -n "        "
+                echo_ip_with_ptr "${a}"
+            done
+        done
+    fi
+
+    local mx_priority mx_hostname mx_cname mx_ptr
+    local mx_records="$(get_mx "$real_hostname")"
+    if [[ -n "${mx_records}" ]]; then
+        echo -e "\nMX records:"
+        for mx in ${mx_records}; do
+            mx_priority="${mx%%\#*}"
+            mx_hostname="${mx##*\#}"
+            echo -n "    ${mx_hostname} (Priority: ${mx_priority}"
+            mx_cname="$(get_cname "${mx_hostname}")"
+            if [[ -n "${mx_cname}" ]]; then
+                echo -n ", CNAME: ${mx_cname}"
+                mx_hostname="${mx_cname}"
+            fi
+            echo ")"
+            for a in $(get_a $mx_hostname); do
+                echo -n "        "
+                echo_ip_with_ptr "${a}"
+            done
+        done
+    fi
+}
