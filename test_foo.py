@@ -150,6 +150,25 @@ class BashModuleTestCase(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             obj.build_argparse(subparser)
 
+    @mock.patch('subprocess.Popen')
+    def test_run(self, Popen):
+        with codecs.open(self.module, 'w', 'utf-8') as fp:
+            print >> fp, 'main() { echo 1 }'
+        with mock.patch.dict('os.environ', {'PATH': '/'}):
+            obj = BashModule(self.module)
+            obj.run({'foo': 'bar', 'bar': ['baz'], 'lol': None})
+        script = Popen.call_args[0][0][2]  # wtf?
+        for func in ['log_debug', 'log_info', 'log_warning', 'log_error',
+                     'log_critical']:
+            self.assertIn('%s() {' % func, script)
+        self.assertIn(self.module, script)
+        env = Popen.call_args[1]['env']
+        self.assertEquals(env['PATH'], '/')
+        self.assertEquals(env['FOO_ARG_FOO'], 'bar')
+        self.assertEquals(env['FOO_ARG_BAR'], 'baz')
+        self.assertEquals(env['FOO_ARG_LOL'], '')
+        self.assertEquals(len(env), 4)
+
 
 if __name__ == '__main__':
     unittest.main()
