@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import unittest
 
-from foo import BashModule, re_parse_args
+from foo import BashModule, Runner, re_parse_args
 
 
 class ReParseArgsTestCase(unittest.TestCase):
@@ -168,6 +168,90 @@ class BashModuleTestCase(unittest.TestCase):
         self.assertEquals(env['FOO_ARG_BAR'], 'baz')
         self.assertEquals(env['FOO_ARG_LOL'], '')
         self.assertEquals(len(env), 4)
+
+
+class RunnerTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.module = os.path.join(self.tmpdir, 'module')
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    @mock.patch('sysconfig.get_config_var')
+    @mock.patch('os.path.expanduser')
+    def test_search_paths_not_created(self, expanduser, get_config_var):
+        expanduser.return_value = self.tmpdir
+        get_config_var.return_value = self.tmpdir
+        runner = Runner()
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        self.assertEquals(runner.search_paths(),
+                          [os.path.join(cwd, 'modules')])
+
+    @mock.patch('sysconfig.get_config_var')
+    @mock.patch('os.path.expanduser')
+    def test_search_paths(self, expanduser, get_config_var):
+        expanduser.return_value = self.tmpdir
+        get_config_var.return_value = self.tmpdir
+        runner = Runner()
+        _cwd = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            'modules')
+        _user = os.path.join(self.tmpdir, '.local', 'libexec', 'foo-tools')
+        if not os.path.isdir(_user):
+            os.makedirs(_user)
+        _global = os.path.join(self.tmpdir, 'libexec', 'foo-tools')
+        if not os.path.isdir(_global):
+            os.makedirs(_global)
+        self.assertEquals(runner.search_paths(), [_user, _cwd, _global])
+
+    @mock.patch('foo.Runner.search_paths')
+    def test_modules(self, search_paths):
+        _subdir = os.path.join(self.tmpdir, 'modules')
+        if not os.path.isdir(_subdir):
+            os.makedirs(_subdir)
+        foo = os.path.join(self.tmpdir, 'foo')
+        with open(foo, 'w') as fp:
+            print >> fp
+        os.chmod(foo, 0755)
+        bar = os.path.join(self.tmpdir, 'bar')
+        with open(bar, 'w') as fp:
+            print >> fp
+        os.chmod(bar, 0755)
+        search_paths.return_value = [self.tmpdir, _subdir]
+        runner = Runner()
+        modules = runner.modules()
+        self.assertIn('foo', modules)
+        self.assertIn('bar', modules)
+
+    @mock.patch('foo.Runner.search_paths')
+    def test_duplicated_modules(self, search_paths):
+        _subdir = os.path.join(self.tmpdir, 'modules')
+        if not os.path.isdir(_subdir):
+            os.makedirs(_subdir)
+        foo = os.path.join(self.tmpdir, 'foo')
+        with open(foo, 'w') as fp:
+            print >> fp
+        os.chmod(foo, 0755)
+        foo1 = os.path.join(self.tmpdir, 'foo')
+        with open(foo1, 'w') as fp:
+            print >> fp
+        os.chmod(foo1, 0755)
+        search_paths.return_value = [self.tmpdir, _subdir]
+        runner = Runner()
+        modules = runner.modules()
+        self.assertIn('foo', modules)
+        self.assertEquals(modules['foo'].fname, foo)
+
+    @mock.patch('foo.Runner.search_paths')
+    def test_not_executable_modules(self, search_paths):
+        foo = os.path.join(self.tmpdir, 'foo')
+        with open(foo, 'w') as fp:
+            print >> fp
+        search_paths.return_value = [self.tmpdir]
+        runner = Runner()
+        modules = runner.modules()
+        self.assertEquals(len(modules), 0)
 
 
 if __name__ == '__main__':

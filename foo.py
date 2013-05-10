@@ -125,7 +125,6 @@ class Runner(object):
                                  default='WARNING', choices=levels,
                                  help='configure logging level.')
 
-    @property
     def search_paths(self):
         # The code below can't use any log level lower than WARNING
         paths = []
@@ -141,26 +140,21 @@ class Runner(object):
                                'foo-tools')
         if os.path.isdir(_global):
             paths.append(_global)
-        if len(paths) == 0:
-            raise RuntimeError('No search path found!')
         return paths
 
-    @property
     def modules(self):
         # The code below can't use any log level lower than WARNING
         modules = {}
-        for path in self.search_paths[::-1]:
+        for path in self.search_paths()[::-1]:
             for module in os.listdir(path):
                 module_file = os.path.join(path, module)
                 if os.path.isfile(module_file) and \
                    os.access(module_file, os.X_OK):
                     modules[module] = BashModule(module_file)
-        if len(modules) == 0:
-            raise RuntimeError('No module found!')
         return modules
 
     def run(self):
-        modules = self.modules
+        modules = self.modules()
         for name in sorted(modules.keys()):
             modules[name].build_argparse(self.subparser)
         argv = sys.argv[1:]
