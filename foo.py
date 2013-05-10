@@ -11,8 +11,8 @@ import sysconfig
 
 re_parse_args = re.compile(
     r'^(?P<lopt>\[)?('
-    r'(?P<key>\-\-(?P<key_name>[a-z_-]+))(=(?P<value>[^= \]]+))?|'
-    r'(?P<argument>[^= \]]+))'
+    r'(?P<key>\-\-(?P<key_name>[a-z_-]+))(=(?P<value>[a-z_-]+))?|'
+    r'(?P<argument>[a-z_-]+))'
     r'(?P<ropt>\])?$')
 
 LOG_FORMAT = '%(name)s - %(levelname)s: %(message)s'
@@ -58,10 +58,6 @@ class BashModule(object):
         rv = subprocess.check_output(['/bin/bash', '-c', script])
         for line in shlex.split(rv):
             pieces = line.split('=', 1)
-            if len(pieces) != 2:
-                continue
-            if not pieces[0].startswith('FOO_'):  # WTF?
-                continue
             metadata[pieces[0].lower()[4:]] = pieces[1]
         return metadata
 
@@ -121,7 +117,8 @@ class Runner(object):
         self.subparser = self.parser.add_subparsers(title='modules')
         self.parser.add_argument('--traceback', dest='_traceback',
                                  action='store_true',
-                                 help='print Python traceback in errors.')
+                                 help='print Python traceback in errors, '
+                                 'if possible.')
         levels = [j for i, j in logging._levelNames.iteritems()
                   if isinstance(j, basestring)]
         self.parser.add_argument('--log-level', dest='log_level',
