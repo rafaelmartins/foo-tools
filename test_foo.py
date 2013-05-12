@@ -150,7 +150,7 @@ class BashModuleTestCase(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             obj.build_argparse(subparser)
 
-    @mock.patch('subprocess.Popen')
+    @mock.patch('foo.subprocess.Popen')
     def test_run(self, Popen):
         with codecs.open(self.module, 'w', 'utf-8') as fp:
             print >> fp, 'main() { echo 1 }'
@@ -182,8 +182,8 @@ class RunnerTestCase(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
-    @mock.patch('sysconfig.get_config_var')
-    @mock.patch('os.path.expanduser')
+    @mock.patch('foo.sysconfig.get_config_var')
+    @mock.patch('foo.os.path.expanduser')
     def test_search_paths_not_created(self, expanduser, get_config_var):
         expanduser.return_value = self.tmpdir
         get_config_var.return_value = self.tmpdir
@@ -192,8 +192,8 @@ class RunnerTestCase(unittest.TestCase):
         self.assertEquals(runner.search_paths(),
                           [os.path.join(cwd, 'modules')])
 
-    @mock.patch('sysconfig.get_config_var')
-    @mock.patch('os.path.expanduser')
+    @mock.patch('foo.sysconfig.get_config_var')
+    @mock.patch('foo.os.path.expanduser')
     def test_search_paths(self, expanduser, get_config_var):
         expanduser.return_value = self.tmpdir
         get_config_var.return_value = self.tmpdir
