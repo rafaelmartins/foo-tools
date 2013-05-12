@@ -154,7 +154,9 @@ class BashModuleTestCase(unittest.TestCase):
     def test_run(self, Popen):
         with codecs.open(self.module, 'w', 'utf-8') as fp:
             print >> fp, 'main() { echo 1 }'
-        with mock.patch.dict('os.environ', {'PATH': '/'}):
+        with mock.patch.dict('foo.os.environ',
+                             {'PATH': '/', 'LC_ALL': 'en_US.utf8'},
+                             clear=True):
             obj = BashModule(self.module)
             obj.run({'foo': 'bar', 'bar': ['baz'], 'lol': None})
         script = Popen.call_args[0][0][2]  # wtf?
@@ -164,10 +166,11 @@ class BashModuleTestCase(unittest.TestCase):
         self.assertIn(self.module, script)
         env = Popen.call_args[1]['env']
         self.assertEquals(env['PATH'], '/')
+        self.assertEquals(env['LC_ALL'], 'en_US.utf8')
         self.assertEquals(env['FOO_ARG_FOO'], 'bar')
         self.assertEquals(env['FOO_ARG_BAR'], 'baz')
         self.assertEquals(env['FOO_ARG_LOL'], '')
-        self.assertEquals(len(env), 4)
+        self.assertEquals(len(env), 5)
 
 
 class RunnerTestCase(unittest.TestCase):

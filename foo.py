@@ -88,6 +88,10 @@ class BashModule(object):
 
     def run(self, args):
         env = {'PATH': os.environ['PATH']}
+        # locale vars
+        for var_name in os.environ:
+            if var_name.startswith('LC_') or var_name in ['LANG', 'LANGUAGE']:
+                env[var_name] = os.environ[var_name]
         for key, value in args.iteritems():
             if isinstance(value, list):
                 value = value[0]
