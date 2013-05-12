@@ -152,8 +152,7 @@ class Runner(object):
         for path in self.search_paths()[::-1]:
             for module in os.listdir(path):
                 module_file = os.path.join(path, module)
-                if os.path.isfile(module_file) and \
-                   os.access(module_file, os.X_OK):
+                if os.path.isfile(module_file):
                     modules[module] = BashModule(module_file)
         return modules
 

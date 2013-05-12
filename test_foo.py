@@ -246,16 +246,6 @@ class RunnerTestCase(unittest.TestCase):
         self.assertIn('foo', modules)
         self.assertEquals(modules['foo'].fname, foo)
 
-    @mock.patch('foo.Runner.search_paths')
-    def test_not_executable_modules(self, search_paths):
-        foo = os.path.join(self.tmpdir, 'foo')
-        with open(foo, 'w') as fp:
-            print >> fp
-        search_paths.return_value = [self.tmpdir]
-        runner = Runner()
-        modules = runner.modules()
-        self.assertEquals(len(modules), 0)
-
 
 if __name__ == '__main__':
     unittest.main()
