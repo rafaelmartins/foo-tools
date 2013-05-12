@@ -3,10 +3,12 @@ import mock
 import os
 import shutil
 import sys
+import sysconfig
 import tempfile
 import unittest
 from argparse import Namespace
 
+import foo
 from foo import BashModule, Runner, main, re_parse_args
 
 
@@ -208,21 +210,18 @@ class RunnerTestCase(BaseTestCase):
         self.assertEquals(runner.search_paths(),
                           [os.path.join(cwd, 'modules')])
 
-    @mock.patch('foo.sysconfig.get_config_var')
-    @mock.patch('foo.os.path.expanduser')
-    def test_search_paths(self, expanduser, get_config_var):
-        expanduser.return_value = self.tmpdir
-        get_config_var.return_value = self.tmpdir
+    @mock.patch('foo.os.path.isdir')
+    def test_search_paths(self, isdir):
+        isdir.return_value = True
         runner = Runner()
-        _cwd = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            'modules')
-        _user = os.path.join(self.tmpdir, '.local', 'libexec', 'foo-tools')
-        if not os.path.isdir(_user):
-            os.makedirs(_user)
-        _global = os.path.join(self.tmpdir, 'libexec', 'foo-tools')
-        if not os.path.isdir(_global):
-            os.makedirs(_global)
-        self.assertEquals(runner.search_paths(), [_user, _cwd, _global])
+        cwd = os.path.dirname(os.path.abspath(foo.__file__))
+        _cwd = os.path.join(cwd, 'modules')
+        _user = os.path.join(os.path.expanduser('~'), '.local', 'libexec',
+                             'foo-tools')
+        _egg = os.path.join(cwd, 'libexec', 'foo-tools')
+        _global = os.path.join(sysconfig.get_config_var('base'), 'libexec',
+                               'foo-tools')
+        self.assertEquals(runner.search_paths(), [_user, _cwd, _egg, _global])
 
     @mock.patch('foo.Runner.search_paths')
     def test_modules(self, search_paths):

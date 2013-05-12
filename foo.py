@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 
-import argparse
+__author__ = 'Rafael Goncalves Martins'
+__email__ = 'rafael@rafaelmartins.eng.br'
+
+__description__ = 'General purpose swiss-knife.'
+__url__ = 'http://projects.rafaelmartins.eng.br/foo-tools/'
+__copyright__ = '(c) 2013 %s <%s>' % (__author__, __email__)
+__license__ = 'BSD'
+
+__version__ = '0.1pre'
+
+try:
+    import argparse
+except ImportError:  # Python 2.6, will be installed by setup.py
+    pass
 import logging
 import os
 import re
@@ -140,6 +153,9 @@ class Runner(object):
         _local = os.path.join(cwd, 'modules')
         if os.path.isdir(_local):
             paths.append(_local)
+        _egg = os.path.join(cwd, 'libexec', 'foo-tools')
+        if os.path.isdir(_egg):
+            paths.append(_egg)
         _global = os.path.join(sysconfig.get_config_var('base'), 'libexec',
                                'foo-tools')
         if os.path.isdir(_global):
