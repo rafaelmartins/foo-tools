@@ -1,5 +1,4 @@
 import codecs
-import logging
 import mock
 import os
 import shutil
@@ -8,7 +7,7 @@ import tempfile
 import unittest
 from argparse import Namespace
 
-from foo import BashModule, Runner, log, main, re_parse_args
+from foo import BashModule, Runner, main, re_parse_args
 
 
 class BaseTestCase(unittest.TestCase):
@@ -233,11 +232,9 @@ class RunnerTestCase(BaseTestCase):
         foo = os.path.join(self.tmpdir, 'foo')
         with open(foo, 'w') as fp:
             print >> fp
-        os.chmod(foo, 0755)
         bar = os.path.join(self.tmpdir, 'bar')
         with open(bar, 'w') as fp:
             print >> fp
-        os.chmod(bar, 0755)
         search_paths.return_value = [self.tmpdir, _subdir]
         runner = Runner()
         modules = runner.modules()
@@ -252,11 +249,9 @@ class RunnerTestCase(BaseTestCase):
         foo = os.path.join(self.tmpdir, 'foo')
         with open(foo, 'w') as fp:
             print >> fp
-        os.chmod(foo, 0755)
         foo1 = os.path.join(self.tmpdir, 'foo')
         with open(foo1, 'w') as fp:
             print >> fp
-        os.chmod(foo1, 0755)
         search_paths.return_value = [self.tmpdir, _subdir]
         runner = Runner()
         modules = runner.modules()
