@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+    test_foo
+    ~~~~~~~~
+
+    :copyright: (c) 2013 by Rafael Goncalves Martins
+    :license: BSD, see LICENSE for more details.
+"""
+
 import codecs
 import mock
 import os

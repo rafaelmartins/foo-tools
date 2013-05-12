@@ -1,4 +1,13 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+    foo
+    ~~~
+
+    General purpose swiss-knife.
+
+    :copyright: (c) 2013 by Rafael Goncalves Martins
+    :license: BSD, see LICENSE for more details.
+"""
 
 __author__ = 'Rafael Goncalves Martins'
 __email__ = 'rafael@rafaelmartins.eng.br'
@@ -130,8 +139,10 @@ class Runner(object):
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(
-            description='General purpose swiss-knife')
+            description=__description__)
         self.subparser = self.parser.add_subparsers(title='modules')
+        self.parser.add_argument('--version', action='version',
+                                 version='%%(prog)s %s' % __version__)
         self.parser.add_argument('--traceback', dest='_traceback',
                                  action='store_true',
                                  help='print Python traceback in errors, '
