@@ -1,14 +1,27 @@
 import codecs
+import logging
 import mock
 import os
 import shutil
+import sys
 import tempfile
 import unittest
+from argparse import Namespace
 
-from foo import BashModule, Runner, re_parse_args
+from foo import BashModule, Runner, log, main, re_parse_args
 
 
-class ReParseArgsTestCase(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self._log = mock.patch('foo.log')
+        self.log = self._log.start()
+
+    def tearDown(self):
+        self.log.stop()
+
+
+class ReParseArgsTestCase(BaseTestCase):
 
     def test_argument(self):
         for arg in ['argument', 'arg-ument', 'arg_ument']:
@@ -83,13 +96,15 @@ class ReParseArgsTestCase(unittest.TestCase):
             self.assertIsNone(rv.groupdict()['value'])
 
 
-class BashModuleTestCase(unittest.TestCase):
+class BashModuleTestCase(BaseTestCase):
 
     def setUp(self):
+        super(BaseTestCase, self).setUp()
         self.tmpdir = tempfile.mkdtemp()
         self.module = os.path.join(self.tmpdir, 'module')
 
     def tearDown(self):
+        super(BaseTestCase, self).tearDown()
         shutil.rmtree(self.tmpdir)
 
     def test_get_metadata(self):
@@ -173,13 +188,15 @@ class BashModuleTestCase(unittest.TestCase):
         self.assertEquals(len(env), 5)
 
 
-class RunnerTestCase(unittest.TestCase):
+class RunnerTestCase(BaseTestCase):
 
     def setUp(self):
+        super(BaseTestCase, self).setUp()
         self.tmpdir = tempfile.mkdtemp()
         self.module = os.path.join(self.tmpdir, 'module')
 
     def tearDown(self):
+        super(BaseTestCase, self).tearDown()
         shutil.rmtree(self.tmpdir)
 
     @mock.patch('foo.sysconfig.get_config_var')
@@ -245,6 +262,50 @@ class RunnerTestCase(unittest.TestCase):
         modules = runner.modules()
         self.assertIn('foo', modules)
         self.assertEquals(modules['foo'].fname, foo)
+
+    @mock.patch('foo.Runner.modules')
+    def test_run(self, modules):
+        module = mock.Mock()
+        modules.return_value = {'foo': module}
+        runner = Runner()
+        runner.parser = parser = mock.Mock()
+        parser.parse_args.return_value = Namespace(foo='bar', bar=['baz'],
+                                                   _lol='hehe', xd=None,
+                                                   log_level='NOTSET',
+                                                   _module=module)
+        with mock.patch.object(sys, 'argv', ['foo', 'bar', '--traceback']):
+            runner.run()
+        module.build_argparse.assert_called_once_with(runner.subparser)
+        parser.parse_args.assert_called_once_with(['bar'])
+        module.run.assert_called_once_with({'bar': 'baz', 'foo': 'bar',
+                                            'log_level': '0', 'xd': ''})
+
+
+class MainTestCase(BaseTestCase):
+
+    @mock.patch('foo.Runner')
+    def test_ok(self, Runner):
+        Runner.return_value = runner = mock.Mock()
+        runner.run.return_value = 0
+        self.assertEquals(main(), 0)
+        Runner.assert_called_once_with()
+        runner.run.assert_called_once_with()
+
+    @mock.patch('foo.Runner')
+    def test_with_exception(self, Runner):
+        Runner.return_value = runner = mock.Mock()
+        runner.run.side_effect = RuntimeError('foo')
+        runner.run.return_value = 0
+        self.assertEquals(main(), 1)
+
+    @mock.patch('foo.Runner')
+    def test_with_exception_reraised(self, Runner):
+        Runner.return_value = runner = mock.Mock()
+        runner.run.side_effect = RuntimeError('foo')
+        runner.run.return_value = 0
+        with mock.patch.object(sys, 'argv', ['foo', 'bar', '--traceback']):
+            with self.assertRaises(RuntimeError):
+                main()
 
 
 if __name__ == '__main__':
