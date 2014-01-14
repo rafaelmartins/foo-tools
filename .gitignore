@@ -1,0 +1,8 @@
+*.pyc
+*.pyo
+*.wpu
+.coverage
+
+/foo_tools.egg-info/
+/dist/
+/build/

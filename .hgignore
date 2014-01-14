@@ -1,7 +1,0 @@
-\.py[co]$
-\.wpu$
-^\.coverage$
-
-^foo_tools\.egg\-info/
-^dist/
-^build/
